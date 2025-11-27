@@ -160,7 +160,7 @@ function setup() {
   };
 
   function mouseInRange(x1,y1,x2,y2){
-    return (mouseX<x2&&mouseX>x1&&mouseY<y2&&mouseY>y1)
+    return (mouseX/min(window.innerWidth/1350,window.innerHeight/800)<x2&&mouseX/min(window.innerWidth/1350,window.innerHeight/800)>x1&&mouseY/min(window.innerWidth/1350,window.innerHeight/800)<y2&&mouseY/min(window.innerWidth/1350,window.innerHeight/800)>y1)
   };
 
   function getRollData(n){
