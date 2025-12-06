@@ -4,6 +4,8 @@ function setup() {
   currentRarity=0;
   currentRollLuck=0;
   tempCurrentRollLuck=0;
+  currentBulk=1;
+  maxBulk=1;
   luck=1;
   raritySum=0;
   displaySize=0;
@@ -14,9 +16,11 @@ function setup() {
   temp2=0;
   //inventory luck boost
   //[amount,description,effect,effect#,[[rarity,cost],[rarity,cost]]]
-  upgrades=[[0,"Improves inventory boost","^",1,[[2,1],[1,2],[0,3]]]];
+  upgrades=[[0,"Improves inventory boost","^",1,[]],[0,"Improves max bulk","x",1,[]]];
   upgradeScroll=0;
   projectedUpgradeScroll=0;
+  inventoryScroll=0;
+  projectedInventoryScroll=0;
   // [name,rarity,color,amount]
   rarities=
     [["Common",1,[128,128,128],0],
@@ -40,7 +44,7 @@ function setup() {
     ["Topaz",600,[128,80,0],0],
     ["Quartz",500,[220,220,220],0],
     ["Opal",700,[0,255,150],0],
-    ["Iron",150,[180,180,180],0],
+    ["Iron",150,[160,160,180],0],
     ["Cobalt",175,[0,135,200],0],
     ["Silver",200,[180,180,180],0],
     ["Tin",100,[180,180,150],0],
@@ -64,7 +68,47 @@ function setup() {
     ["Magma",8000,[180,0,0],0],
     ["Mud",8000,[100,50,0],0],
     ["Ice",8000,[150,200,200],0],
-    ["Void",100000,[80,80,80],0]];
+    ["Void",100000,[80,80,80],0],
+  
+    ["Prestige",400,[0,180,255],0],
+    ["Booster",1250,[150,100,220],0],
+    ["Generator",1250,[160,255,160],0],
+    ["Time",2000,[0,150,0],0],
+    ["Enhance",2250,[220,0,250],0],
+    ["Space",2000,[250,250,240],0],
+    ["Super Booster",4500,[80,0,210],0],
+    ["Super Generator",5500,[50,180,70],0],
+    ["Quirks",12500,[250,0,200],0],
+    ["Hinderance",17500,[160,80,0],0],
+    ["Solarity",30000,[255,250,10],0],
+    ["Subspace",30000,[230,240,240],0],
+    ["Magic",75000,[250,80,220],0],
+    ["Balance",75000,[250,250,150],0],
+    ["Phantom Souls",110000,[200,160,240],0],
+    ["Honor",175000,[240,220,0],0],
+    ["Nebula",250000,[30,0,180],0],
+    ["Hyperspace",250000,[230,230,250],0],
+    ["Imperium",275000,[250,250,200],0],
+    ["Mastery",1000000,[250,130,130],0],
+    ["Gears",1250000,[160,150,140],0],
+    ["Machine Parts",1500000,[150,120,90],0],
+    ["Energy",1800000,[220,250,0],0],
+    ["Neurons",1800000,[240,230,250],0],
+    ["Robots",2300000,[100,180,200],0],
+    ["Ideas",2200000,[250,230,40],0],
+    ["AI",3000000,[160,200,140],0],
+    ["Civilization",4500000,[220,200,250],0],
+
+    ["Ducdat",20000,[50,50,200],0],
+    ["Despacit",40000,[50,200,0],0],
+    ["Demonin",60000,[200,180,0],0],
+
+    ["Aarex",150000,[250,250,200],0],
+    ["The Paper Pilot",350000,[0,250,120],0],
+    ["Hevipelle",625000,[250,230,0],0],
+    ["Acamaeda",1750000,[140,100,0],0],
+    ["Jacorb",5000000,[128,0,255],0]
+    ];
   
   function sortRarityList(){
     for (var i=0;i<rarities.length;i++){
@@ -89,18 +133,23 @@ function setup() {
   keyReleased = function(){
     // Check for rolls
     if (key === 'Enter') {
-      displaySize=0;
+      roll();
+    };
+  };
+
+  function roll(){
+    displaySize=0;
+      currentBulk=1+Math.round(Math.pow(Math.random(),5)*(maxBulk-1))
       raritySum=raritySumCalculations(luck);
       currentRollLuck=Math.random()*raritySum;
       tempCurrentRollLuck=currentRollLuck;
       for (var i=0;i<rarities.length;i++){
         if (0<tempCurrentRollLuck && tempCurrentRollLuck<Math.pow(rarities[i][1],(-1/luck))){
           currentRoll=i;
-          rarities[i][3]+=1;
+          rarities[i][3]+=currentBulk;
         };
         tempCurrentRollLuck-=Math.pow(rarities[i][1],(-1/luck));
       };
-    };
   };
 
   mouseReleased = function(){
@@ -111,11 +160,22 @@ function setup() {
     if (mouseInRange(1175,740,1225,790)){
       projectedUpgradeScroll+=1;
     };
+    //inventory scroll buttons
+    if (mouseInRange(300,50,350,100)){
+      projectedInventoryScroll-=1;
+    };
+    if (mouseInRange(300,150,350,200)){
+      projectedInventoryScroll+=1;
+    };
     //upgrades
     for (var i=0;i<3;i++){
       if (mouseInRange(1100,80+220*i,1300,280+220*i) && i+projectedUpgradeScroll<upgrades.length && i+projectedUpgradeScroll>-1){
         attemptPurchase(i+projectedUpgradeScroll);
       };
+    };
+    //roll
+    if (mouseInRange(600,325,700,425)){
+      roll();
     };
   };
 
@@ -136,11 +196,24 @@ function setup() {
       };
     };
     return temp
-  }
+  };
+
+  function displayRollButton(){
+    fill(0,0,0);
+    strokeWeight(5);
+    stroke(180,180,180);
+    textSize(12);
+    textAlign("center");
+    rect(600,325,100,100)
+    noStroke();
+    fill(180,180,180);
+    text("Roll",650,350);
+    text("(or press enter)",650,375)
+  };
 
   function updateCostsAndEffects(){
     //upgrade 1
-    upgrades[0][3]=Math.round(Math.pow(upgrades[0][0]+1,0.5)*1000)/1000;
+    upgrades[0][3]=Math.round(Math.pow(upgrades[0][0]+1,1/3)*1000)/1000;
     upgrades[0][4]=[];
     temp=1;
     temp2=upgrades[0][0];
@@ -156,6 +229,22 @@ function setup() {
       };
       temp+=1;
       temp*=Math.pow(1.2,Math.pow(upgrades[0][0],0.5));
+    };
+    //upgrade 2
+    upgrades[1][3]=upgrades[1][0]+1;
+    upgrades[1][4]=[];
+    temp=Math.pow(upgrades[1][0]+1,0.5);
+    temp2=upgrades[1][0]-2;
+    
+    upgrades[1][4].push([temp2+5,Math.floor(temp)]);
+    temp*=Math.pow(1.4,Math.pow(upgrades[1][0],0.5));
+    while (temp2>0){
+      temp2-=Math.pow(upgrades[1][0],0.5);
+      if (Math.floor(temp2)>=0){
+        upgrades[1][4].push([Math.floor(temp2),Math.floor(temp)]);
+      };
+      temp+=1;
+      temp*=Math.pow(1.4,Math.pow(upgrades[1][0],0.5));
     };
   };
 
@@ -176,12 +265,14 @@ function setup() {
     for (var i=0;i<rarities.length;i++){
       if (rarities[i][3]!=0){
         fill(255,255,255);
-        text(rarities[i][3]+"x",10,inventoryPos);
+        text(rarities[i][3]+"x",10,inventoryPos-200*inventoryScroll);
         fill(rarities[i][2][0],rarities[i][2][1],rarities[i][2][2]);
-        text(rarities[i][0]+" (Rarity: "+String(rarities[i][1])+")",40+10*Math.floor(Math.log10(rarities[i][3])),inventoryPos);
+        text(rarities[i][0]+" (Rarity: "+String(rarities[i][1])+")",40+10*Math.floor(Math.log10(rarities[i][3])),inventoryPos-200*inventoryScroll);
         inventoryPos+=20
       };
     };
+    fill(0,0,0);
+    rect(0,0,400,30);
     fill(255,255,255)
     text("Your inventory is boosting luck by x"+String(Math.round(inventoryLuckBoost*10000)/10000),10,20);
   };  
@@ -226,10 +317,21 @@ function setup() {
     fill(0,0,0);
     rect(1095,-500,210,575);
     rect(1095,725,210,575);
+  };
+
+  function displayScrollButtons(){
     fill(128,128,128);
+    //upgrade scroll
     rect(1175,10,50,50);
     rect(1175,740,50,50);
-    upgradeScroll=(9*upgradeScroll+projectedUpgradeScroll)/10
+    //inventory scroll
+    rect(300,50,50,50);
+    rect(300,150,50,50);
+  };
+
+  function updateSmoothScrolling(){
+    upgradeScroll=(9*upgradeScroll+projectedUpgradeScroll)/10;
+    inventoryScroll=(9*inventoryScroll+projectedInventoryScroll)/10;
   };
 
   draw = function() {
@@ -240,22 +342,28 @@ function setup() {
     sortRarityList();
     textSize(50);
     textAlign("center");
-    text("You Rolled:",650,100)
+    text("You Rolled: ",650,100)
     if (currentRoll!=-1){
       getRollData(currentRoll);
     }else{
       fill(255,255,255);
     };
     textSize(2*displaySize);
-    text(currentName,650,200);
+    text(currentName+"  x"+currentBulk,650,200);
     textSize(displaySize);
-    displaySize=40-(40-displaySize)*0.9
+    displaySize=35-(35-displaySize)*0.9
     text("Rarity: "+currentRarity,650,250);
+    textSize(2*displaySize);
+    fill(255,255,255);
     //text(String(currentRollLuck),650,300);
     updateInventoryLuck();
     luck=inventoryLuckBoost;
+    maxBulk=upgrades[1][3]
     displayInventory();
     displayUpgrades();
     updateCostsAndEffects();
+    displayRollButton();
+    displayScrollButtons();
+    updateSmoothScrolling();
   };
 };
