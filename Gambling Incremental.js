@@ -1,4 +1,5 @@
 function setup() {
+  menu=0;
   currentRoll=-1;
   currentName="Placeholder";
   currentRarity=0;
@@ -14,6 +15,13 @@ function setup() {
   tempInventoryLuckBoost=0;
   temp=0;
   temp2=0;
+  framesSinceRoll=0;
+  rollCooldown=10;
+  unlocks=0;
+  unlockReq=[["Rarity Downgrader",1.075],["N/A",100]]
+  //statistics
+  rolls=0;
+  time=0;
   //inventory luck boost
   //[amount,description,effect,effect#,[[rarity,cost],[rarity,cost]]]
   upgrades=[[0,"Improves inventory boost","^",1,[]],[0,"Improves max bulk","x",1,[]]];
@@ -21,6 +29,7 @@ function setup() {
   projectedUpgradeScroll=0;
   inventoryScroll=0;
   projectedInventoryScroll=0;
+  ownedRarities=[];
   // [name,rarity,color,amount]
   rarities=
     [["Common",1,[128,128,128],0],
@@ -110,6 +119,14 @@ function setup() {
     ["Jacorb",5000000,[128,0,255],0]
     ];
   
+  function updateOwnedRarities(){
+    ownedRarities=[];
+    for (var i=0;i<rarities.length;i++){
+      if(rarities[i][3]>0){
+        ownedRarities.push(i);
+      };
+    };
+  };
   function sortRarityList(){
     for (var i=0;i<rarities.length;i++){
       for (var j=0;j<rarities.length-1;j++){
@@ -138,7 +155,10 @@ function setup() {
   };
 
   function roll(){
-    displaySize=0;
+    if (framesSinceRoll>=rollCooldown){
+      rolls+=1;
+      framesSinceRoll=0;
+      displaySize=0;
       currentBulk=1+Math.round(Math.pow(Math.random(),5)*(maxBulk-1))
       raritySum=raritySumCalculations(luck);
       currentRollLuck=Math.random()*raritySum;
@@ -150,6 +170,7 @@ function setup() {
         };
         tempCurrentRollLuck-=Math.pow(rarities[i][1],(-1/luck));
       };
+    };
   };
 
   mouseReleased = function(){
@@ -166,6 +187,13 @@ function setup() {
     };
     if (mouseInRange(300,150,350,200)){
       projectedInventoryScroll+=1;
+    };
+    //menu scroll buttons
+    if (mouseInRange(50,725,100,775)){
+      menu-=1;
+    };
+    if (mouseInRange(125,725,175,775)){
+      menu+=1;
     };
     //upgrades
     for (var i=0;i<3;i++){
@@ -231,7 +259,7 @@ function setup() {
       temp*=Math.pow(1.2,Math.pow(upgrades[0][0],0.5));
     };
     //upgrade 2
-    upgrades[1][3]=upgrades[1][0]+1;
+    upgrades[1][3]=Math.round(Math.pow(upgrades[1][0]+1,1.2));
     upgrades[1][4]=[];
     temp=Math.pow(upgrades[1][0]+1,0.5);
     temp2=upgrades[1][0]-2;
@@ -320,13 +348,42 @@ function setup() {
   };
 
   function displayScrollButtons(){
-    fill(128,128,128);
     //upgrade scroll
-    rect(1175,10,50,50);
-    rect(1175,740,50,50);
+    drawScrollButton(1175,10,"up");
+    drawScrollButton(1175,740,"down");
     //inventory scroll
-    rect(300,50,50,50);
-    rect(300,150,50,50);
+    drawScrollButton(300,50,"up");
+    drawScrollButton(300,150,"down");
+  };
+
+  function displayMenuButtons(){
+    drawScrollButton(50,725,"left");
+    drawScrollButton(125,725,"right");
+  };
+
+  function drawScrollButton(x,y,direction){
+    noStroke();
+    fill(128,128,128);
+    rect(x,y,50,50);
+    strokeWeight(5);
+    stroke(0,0,0);
+    if(direction=="up"){
+      line(x+25,y+10,x+25,y+40);
+      line(x+35,y+20,x+25,y+10);
+      line(x+15,y+20,x+25,y+10);
+    }else if (direction=="down"){
+      line(x+25,y+10,x+25,y+40);
+      line(x+35,y+30,x+25,y+40);
+      line(x+15,y+30,x+25,y+40);
+    }else if (direction=="left"){
+      line(x+10,y+25,x+40,y+25);
+      line(x+10,y+25,x+20,y+15);
+      line(x+10,y+25,x+20,y+35);
+    }else{
+      line(x+10,y+25,x+40,y+25);
+      line(x+40,y+25,x+30,y+15);
+      line(x+40,y+25,x+30,y+35);
+    };
   };
 
   function updateSmoothScrolling(){
@@ -334,36 +391,85 @@ function setup() {
     inventoryScroll=(9*inventoryScroll+projectedInventoryScroll)/10;
   };
 
+  function displayCooldownBar(){
+    strokeWeight(10);
+    stroke(255,0,0);
+    line(750,300,750,450);
+    stroke(0,255,0)
+    line(750,450,750,450-150*min(framesSinceRoll/rollCooldown,1))
+  };
+
   draw = function() {
     createCanvas(window.innerWidth-20,window.innerHeight-20);
     scale(min(window.innerWidth/1350,window.innerHeight/800));
     background(0,0,0);
-    fill(255,255,255);
-    sortRarityList();
-    textSize(50);
-    textAlign("center");
-    text("You Rolled: ",650,100)
-    if (currentRoll!=-1){
-      getRollData(currentRoll);
-    }else{
+    if(menu==0){
       fill(255,255,255);
+      sortRarityList();
+      textSize(50);
+      textAlign("center");
+      text("You Rolled: ",650,100)
+      if (currentRoll!=-1){
+        getRollData(currentRoll);
+      }else{
+        fill(255,255,255);
+      };
+      textSize(2*displaySize);
+      text(currentName+"  x"+currentBulk,650,200);
+      textSize(displaySize);
+      displaySize=35-(35-displaySize)*0.9
+      text("Rarity: "+currentRarity,650,250);
+      textSize(2*displaySize);
+      fill(255,255,255);
+      //text(String(currentRollLuck),650,300);
+      displayInventory();
+      displayUpgrades();
+      displayRollButton();
+      displayCooldownBar();
+      displayScrollButtons();
+      updateSmoothScrolling();
+    }else if(menu==-1){
+      fill(255,255,255);
+      noStroke();
+      textAlign("center");
+      textSize(100);
+      text("Statistics:",675,100);
+      textSize(50);
+      text("You have rolled "+String(rolls)+" times.",675,150);
+      text("You have played for "+String(round(time))+" seconds.",675,200);
+    }else if(menu==-2){
+      fill(255,255,255);
+      noStroke();
+      textAlign("center");
+      textSize(100);
+      text("Records:",675,100);
+      textSize(50);
+      text("Rarest roll: 275K (Prestige283)",675,150);
+    }else if(menu==1){
+      strokeWeight(5);
+      if (luck>=unlockReq[unlocks][1]){
+        stroke(0,255,0);
+      }else{
+        stroke(255,0,0);
+      }
+      fill(0,0,0);
+      rect(475,200,400,400);
+      fill(255,255,255);
+      noStroke();
+      textAlign("center");
+      textSize(50);
+      text("Next feature:",675,250);
+      textSize(25);
+      text(unlockReq[unlocks][0],675,350);
+      text("Requires "+unlockReq[unlocks][1]+"x luck",675,450);
     };
-    textSize(2*displaySize);
-    text(currentName+"  x"+currentBulk,650,200);
-    textSize(displaySize);
-    displaySize=35-(35-displaySize)*0.9
-    text("Rarity: "+currentRarity,650,250);
-    textSize(2*displaySize);
-    fill(255,255,255);
-    //text(String(currentRollLuck),650,300);
+    displayMenuButtons();
+    updateOwnedRarities();
+    updateCostsAndEffects();
     updateInventoryLuck();
     luck=inventoryLuckBoost;
-    maxBulk=upgrades[1][3]
-    displayInventory();
-    displayUpgrades();
-    updateCostsAndEffects();
-    displayRollButton();
-    displayScrollButtons();
-    updateSmoothScrolling();
+    maxBulk=upgrades[1][3];
+    framesSinceRoll+=1;
+    time+=0.01;
   };
 };
