@@ -1,5 +1,7 @@
 function setup() {
   menu=0;
+  menuMin=-2;
+  menuMax=1;
   currentRoll=-1;
   currentName="Placeholder";
   currentRarity=0;
@@ -18,18 +20,29 @@ function setup() {
   framesSinceRoll=0;
   rollCooldown=10;
   unlocks=0;
-  unlockReq=[["Rarity Downgrader",1.075],["N/A",100]]
+  unlockReq=[
+    ["Rarity Downgrader",1.05],
+    ["Automation",1.06],
+    //["Mastery",1.075],
+    ["N/A",100]]
   //statistics
   rolls=0;
   time=0;
   //inventory luck boost
   //[amount,description,effect,effect#,[[rarity,cost],[rarity,cost]]]
-  upgrades=[[0,"Improves inventory boost","^",1,[]],[0,"Improves max bulk","x",1,[]]];
+  upgrades=[
+    [[0,"Improves inventory boost","^",1,[]],[0,"Improves max bulk","x",1,[]]],
+    [],
+    [],
+    [[0,"Increase autoclicker speed","x",0,[]],[0,"Improve autoclicker luck","x",0.5,[]]]];
   upgradeScroll=0;
   projectedUpgradeScroll=0;
   inventoryScroll=0;
   projectedInventoryScroll=0;
+  downgraderScroll=0;
   ownedRarities=[];
+  framesSinceClick=0;
+  framesSinceAutoRoll=0;
   // [name,rarity,color,amount]
   rarities=
     [["Common",1,[128,128,128],0],
@@ -43,6 +56,12 @@ function setup() {
     ["Reality",6561,[0,100,0],0],
     ["Absolute",19683,[255,0,128],0],
 
+    ["Antimatter",12000,[192,255,0],0],
+    ["Exotic Matter",14000,[50,200,50],0],
+    ["Dark Matter",20000,[125,0,175],0],
+
+    ["Amethyst",800,[192,64,255],0],
+    ["Prismatic",3500,[0,255,128],0],
     ["Ruby",1000,[255,50,50],0],
     ["Sapphire",1000,[50,50,255],0],
     ["Emerald",1000,[50,255,0],0],
@@ -52,6 +71,7 @@ function setup() {
     ["Titanium",10000,[150,170,170],0],
     ["Topaz",600,[128,80,0],0],
     ["Quartz",500,[220,220,220],0],
+    ["Crystal",900,[50,200,255],0],
     ["Opal",700,[0,255,150],0],
     ["Iron",150,[160,160,180],0],
     ["Cobalt",175,[0,135,200],0],
@@ -62,7 +82,8 @@ function setup() {
   
     ["Solar",5000,[255,190,0],0],
     ["Lunar",5000,[150,50,255],0],
-    ["Eclipse",25000,[150,75,0],0],
+    ["Stardust",15000,[255,200,0],0],
+    ["Eclipse",25000,[130,65,0],0],
     ["Celestial",50000,[100,255,255],0],
     ["Vortex",35000,[75,0,150],0],
   
@@ -112,7 +133,7 @@ function setup() {
     ["Despacit",40000,[50,200,0],0],
     ["Demonin",60000,[200,180,0],0],
 
-    ["Aarex",150000,[250,250,200],0],
+    ["Aarex",150000,[250,250,150],0],
     ["The Paper Pilot",350000,[0,250,120],0],
     ["Hevipelle",625000,[250,230,0],0],
     ["Acamaeda",1750000,[140,100,0],0],
@@ -150,76 +171,109 @@ function setup() {
   keyReleased = function(){
     // Check for rolls
     if (key === 'Enter') {
-      roll();
+      roll(luck,maxBulk,1);
     };
   };
 
-  function roll(){
+  function roll(rollLuck,rollBulk,manual){
     if (framesSinceRoll>=rollCooldown){
-      rolls+=1;
-      framesSinceRoll=0;
+      if (manual=1){
+        rolls+=1;
+        framesSinceRoll=0;
+      };
       displaySize=0;
-      currentBulk=1+Math.round(Math.pow(Math.random(),5)*(maxBulk-1))
-      raritySum=raritySumCalculations(luck);
+      currentBulk=1+Math.round(Math.pow(Math.random(),5)*(rollBulk-1))
+      raritySum=raritySumCalculations(rollLuck);
       currentRollLuck=Math.random()*raritySum;
       tempCurrentRollLuck=currentRollLuck;
       for (var i=0;i<rarities.length;i++){
-        if (0<tempCurrentRollLuck && tempCurrentRollLuck<Math.pow(rarities[i][1],(-1/luck))){
+        if (0<tempCurrentRollLuck && tempCurrentRollLuck<Math.pow(rarities[i][1],(-1/rollLuck))){
           currentRoll=i;
           rarities[i][3]+=currentBulk;
         };
-        tempCurrentRollLuck-=Math.pow(rarities[i][1],(-1/luck));
+        tempCurrentRollLuck-=Math.pow(rarities[i][1],(-1/rollLuck));
       };
     };
   };
 
   mouseReleased = function(){
-    //upgrade scroll buttons
-    if (mouseInRange(1175,10,1225,60)){
-      projectedUpgradeScroll-=1;
-    };
-    if (mouseInRange(1175,740,1225,790)){
-      projectedUpgradeScroll+=1;
-    };
-    //inventory scroll buttons
-    if (mouseInRange(300,50,350,100)){
-      projectedInventoryScroll-=1;
-    };
-    if (mouseInRange(300,150,350,200)){
-      projectedInventoryScroll+=1;
-    };
-    //menu scroll buttons
-    if (mouseInRange(50,725,100,775)){
-      menu-=1;
-    };
-    if (mouseInRange(125,725,175,775)){
-      menu+=1;
-    };
-    //upgrades
-    for (var i=0;i<3;i++){
-      if (mouseInRange(1100,80+220*i,1300,280+220*i) && i+projectedUpgradeScroll<upgrades.length && i+projectedUpgradeScroll>-1){
-        attemptPurchase(i+projectedUpgradeScroll);
+    if(framesSinceClick>0){
+      if (menu==0){
+        //inventory scroll buttons
+        if (mouseInRange(300,50,350,100)){
+          projectedInventoryScroll-=1;
+        };
+        if (mouseInRange(300,150,350,200)){
+          projectedInventoryScroll+=1;
+        };
+        //roll
+        if (mouseInRange(600,325,700,425)){
+          roll(luck,maxBulk,1);
+        };
+      } else if (menu==1) {
+        //unlock
+        if (mouseInRange(475,200,875,600)){
+          if (luck>=unlockReq[unlocks][1]){
+            unlocks+=1;
+            menuMax+=1;
+          };
+        };
+      } else if (menu==2) {
+        //downgrader scroll buttons
+        if (mouseInRange(25,325,75,375)&&downgraderScroll>0){
+          downgraderScroll-=1;
+        };
+        if (mouseInRange(25,425,75,475)&&downgraderScroll<ownedRarities.length-2){
+          downgraderScroll+=1;
+        };
+        //downgrade
+        if (mouseInRange(100,250,400,550)){
+          rarities[ownedRarities[downgraderScroll]][3]+=1;
+          rarities[ownedRarities[downgraderScroll+1]][3]-=1;
+        };
       };
-    };
-    //roll
-    if (mouseInRange(600,325,700,425)){
-      roll();
+
+      //menu scroll buttons
+      if (mouseInRange(50,725,100,775)){
+        if (menu>menuMin){
+          menu-=1;
+        };
+      };
+      if (mouseInRange(125,725,175,775)){
+        if (menu<menuMax){
+          menu+=1;
+        };
+      };
+      //upgrades
+      for (var i=0;i<3;i++){
+        if (mouseInRange(1100,80+220*i,1300,280+220*i) && i+projectedUpgradeScroll<upgrades[menu].length && i+projectedUpgradeScroll>-1){
+          attemptPurchase(i+projectedUpgradeScroll);
+        };
+      };
+      //upgrade scroll buttons
+      if (mouseInRange(1175,10,1225,60)){
+        projectedUpgradeScroll-=1;
+      };
+      if (mouseInRange(1175,740,1225,790)){
+        projectedUpgradeScroll+=1;
+      };
+      framesSinceClick=0;
     };
   };
 
   function attemptPurchase(upgradeNum){
     if (canPurchase(upgradeNum)){
-      for (var i=0;i<upgrades[upgradeNum][4].length;i++){
-        rarities[upgrades[upgradeNum][4][i][0]][3]-=upgrades[upgradeNum][4][i][1];
+      for (var i=0;i<upgrades[menu][upgradeNum][4].length;i++){
+        rarities[upgrades[menu][upgradeNum][4][i][0]][3]-=upgrades[menu][upgradeNum][4][i][1];
       };
-      upgrades[upgradeNum][0]+=1;
+      upgrades[menu][upgradeNum][0]+=1;
     };
   };
 
   function canPurchase(upgradeNum){
     temp=true
-    for (var i=0;i<upgrades[upgradeNum][4].length;i++){
-      if (rarities[upgrades[upgradeNum][4][i][0]][3]<upgrades[upgradeNum][4][i][1]){
+    for (var i=0;i<upgrades[menu][upgradeNum][4].length;i++){
+      if (rarities[upgrades[menu][upgradeNum][4][i][0]][3]<upgrades[menu][upgradeNum][4][i][1]){
         temp=false
       };
     };
@@ -239,41 +293,34 @@ function setup() {
     text("(or press enter)",650,375)
   };
 
+  function updateUpgrade(menu,upgradeNum,effect,effectRound,costBase,costAdd,costMult,typeAdd,typeMult,typeScale,prescaleLength,prescaleOffset){
+    upgrades[menu][upgradeNum-1][3]=Math.round(effect*Math.pow(10,effectRound))/Math.pow(10,effectRound);
+    upgrades[menu][upgradeNum-1][4]=[];
+    temp=costBase;
+    temp2=upgrades[menu][upgradeNum-1][0]*typeMult+typeAdd;
+    if (prescaleLength>0){
+      for (var i=0;i<prescaleLength;i++){
+        upgrades[menu][upgradeNum-1][4].push([temp2+prescaleOffset,Math.floor(temp)]);
+        temp+=costAdd;
+        temp*=costMult;
+        temp2-=1;
+      };
+    };
+    while (temp2>0){
+      temp2-=typeScale;
+      if (Math.floor(temp2)>=0){
+        upgrades[menu][upgradeNum-1][4].push([Math.floor(temp2),Math.floor(temp)]);
+      };
+      temp+=costAdd;
+      temp*=costMult;
+    };
+  };
+
   function updateCostsAndEffects(){
-    //upgrade 1
-    upgrades[0][3]=Math.round(Math.pow(upgrades[0][0]+1,1/3)*1000)/1000;
-    upgrades[0][4]=[];
-    temp=1;
-    temp2=upgrades[0][0];
-    for (var i=0;i<3;i++){
-      upgrades[0][4].push([temp2+2-i,Math.floor(temp)]);
-      temp+=1;
-      temp*=Math.pow(1.2,Math.pow(upgrades[0][0],0.5));
-    };
-    while (temp2>0){
-      temp2-=Math.pow(upgrades[0][0],0.5);
-      if (Math.floor(temp2)>=0){
-        upgrades[0][4].push([Math.floor(temp2),Math.floor(temp)]);
-      };
-      temp+=1;
-      temp*=Math.pow(1.2,Math.pow(upgrades[0][0],0.5));
-    };
-    //upgrade 2
-    upgrades[1][3]=Math.round(Math.pow(upgrades[1][0]+1,1.2));
-    upgrades[1][4]=[];
-    temp=Math.pow(upgrades[1][0]+1,0.5);
-    temp2=upgrades[1][0]-2;
-    
-    upgrades[1][4].push([temp2+5,Math.floor(temp)]);
-    temp*=Math.pow(1.4,Math.pow(upgrades[1][0],0.5));
-    while (temp2>0){
-      temp2-=Math.pow(upgrades[1][0],0.5);
-      if (Math.floor(temp2)>=0){
-        upgrades[1][4].push([Math.floor(temp2),Math.floor(temp)]);
-      };
-      temp+=1;
-      temp*=Math.pow(1.4,Math.pow(upgrades[1][0],0.5));
-    };
+    updateUpgrade(0,1,Math.pow(upgrades[0][0][0]+1,1/3),3,1,1,Math.pow(1.2,Math.pow(upgrades[0][0][0],0.5)),2,1,Math.pow(upgrades[0][0][0],0.5),3,0);
+    updateUpgrade(0,2,Math.pow(upgrades[0][1][0]+1,1.2),0,Math.pow(upgrades[0][1][0]+1,0.5),1,Math.pow(1.4,Math.pow(upgrades[0][1][0],0.5)),-2,1,Math.pow(upgrades[0][1][0],0.5),1,5);
+    updateUpgrade(3,1,Math.pow(upgrades[3][0][0],0.5)*0.5,3,Math.pow(upgrades[3][0][0]+1,2),0,2,Math.pow(upgrades[3][0][0],0.4)+1,0,1,0,0);
+    updateUpgrade(3,2,Math.pow(upgrades[3][1][0],0.9)*0.01+0.5,3,1,1,1.1,1,2,Math.pow(upgrades[3][1][0],0.75),1,0);
   };
 
   function mouseInRange(x1,y1,x2,y2){
@@ -310,35 +357,36 @@ function setup() {
     for (var i=0;i<rarities.length;i++){
       tempInventoryLuckBoost+=Math.pow(rarities[i][3],0.5);
     };
-    inventoryLuckBoost=Math.pow(1+(Math.log10(tempInventoryLuckBoost+1)/100),upgrades[0][3])
+    inventoryLuckBoost=Math.pow(1+(Math.log10(tempInventoryLuckBoost+1)/100),upgrades[0][0][3])
     return inventoryLuckBoost
   };
 
   function displayUpgrades(){
-    //upgrades
-    for (var i=0;i<upgrades.length;i++){
-      if (220*(i-upgradeScroll)<660 && 220*(i-upgradeScroll)>-220){
-        fill(0,0,0);
-        if (canPurchase(i)){
-          stroke(0,255,0);
-        }else{
-          stroke(255,0,0);
-        }
-        strokeWeight(5);
-        rect(1100,80+220*(i-upgradeScroll),200,200);
-        noStroke();
-        fill(255,255,255);
-        textAlign("center");
-        textSize(15);
-        text(upgrades[i][1],1200,110+220*(i-upgradeScroll));
-        text(upgrades[i][2]+String(upgrades[i][3]),1200,130+220*(i-upgradeScroll));
-        textSize(10);
-        textAlign("left");
-        for (var j=0;j<upgrades[i][4].length;j++){
+    if(0<=menu&&menu<=3){
+      for (var i=0;i<upgrades[menu].length;i++){
+        if (220*(i-upgradeScroll)<660 && 220*(i-upgradeScroll)>-220){
+          fill(0,0,0);
+          if (canPurchase(i)){
+            stroke(0,255,0);
+          }else{
+            stroke(255,0,0);
+          }
+          strokeWeight(5);
+          rect(1100,80+220*(i-upgradeScroll),200,200);
+          noStroke();
           fill(255,255,255);
-          text(upgrades[i][4][j][1]+"x",1120,140+10*j+220*(i-upgradeScroll));
-          fill(rarities[Number(upgrades[i][4][j][0])][2][0],rarities[Number(upgrades[i][4][j][0])][2][1],rarities[Number(upgrades[i][4][j][0])][2][2])
-          text(rarities[Number(upgrades[i][4][j][0])][0],1140,140+10*j+220*(i-upgradeScroll));
+          textAlign("center");
+          textSize(15);
+          text(upgrades[menu][i][1],1200,110+220*(i-upgradeScroll));
+          text(upgrades[menu][i][2]+String(upgrades[menu][i][3]),1200,130+220*(i-upgradeScroll));
+          textSize(10);
+          textAlign("left");
+          for (var j=0;j<upgrades[menu][i][4].length;j++){
+            fill(255,255,255);
+            text(upgrades[menu][i][4][j][1]+"x",1120,140+10*j+220*(i-upgradeScroll));
+            fill(rarities[Number(upgrades[menu][i][4][j][0])][2][0],rarities[Number(upgrades[menu][i][4][j][0])][2][1],rarities[Number(upgrades[menu][i][4][j][0])][2][2])
+            text(rarities[Number(upgrades[menu][i][4][j][0])][0],1140,140+10*j+220*(i-upgradeScroll));
+          };
         };
       };
     };
@@ -348,12 +396,18 @@ function setup() {
   };
 
   function displayScrollButtons(){
+    if (menu==0){
+      //inventory scroll
+      drawScrollButton(300,50,"up");
+      drawScrollButton(300,150,"down");
+    } else if (menu==2){
+      //downgrader scroll
+      drawScrollButton(25,325,"up");
+      drawScrollButton(25,425,"down");
+    };
     //upgrade scroll
     drawScrollButton(1175,10,"up");
     drawScrollButton(1175,740,"down");
-    //inventory scroll
-    drawScrollButton(300,50,"up");
-    drawScrollButton(300,150,"down");
   };
 
   function displayMenuButtons(){
@@ -395,9 +449,67 @@ function setup() {
     strokeWeight(10);
     stroke(255,0,0);
     line(750,300,750,450);
-    stroke(0,255,0)
-    line(750,450,750,450-150*min(framesSinceRoll/rollCooldown,1))
+    stroke(0,255,0);
+    line(750,450,750,450-150*min(framesSinceRoll/rollCooldown,1));
+    if (upgrades[3][0][0]>0){
+      strokeWeight(10);
+      stroke(255,0,0);
+      line(550,300,550,450);
+      stroke(0,64,255);
+      line(550,450,550,450-150*min(framesSinceAutoRoll/(100/upgrades[3][0][3]),1));
+    };
   };
+
+  function displayCurrentLuck(){
+    fill(255,255,255);
+    textSize(40);
+    noStroke();
+    textAlign("center");
+    text("Current Luck: x"+String(round(luck*1000)/1000),650,525);
+  };
+
+  function displayDowngrader(){
+    fill(0,0,0);
+    strokeWeight(5);
+    stroke(0,255,0);
+    rect(100,250,300,300);
+    textSize(40);
+    textAlign("center");
+    fill(255,255,255);
+    noStroke();
+    text("Downgrade",250,400);
+    textSize(40);
+    textAlign("center");
+    if (ownedRarities.length>=2){
+      if(downgraderScroll>ownedRarities.length-2){
+      downgraderScroll=ownedRarities.length-2;
+      }
+      if(downgraderScroll<0){
+      downgraderScroll=0;
+      }
+      for (var i=0;i<2;i++){
+        fill(rarities[ownedRarities[downgraderScroll+i]][2][0],rarities[ownedRarities[downgraderScroll+i]][2][1],rarities[ownedRarities[downgraderScroll+i]][2][2]);
+        textSize(50);
+        textAlign("left");
+        text(rarities[ownedRarities[downgraderScroll+i]][0],550,300+200*i);
+        fill(255,255,255);
+        if (i==0){
+          text("+1x",450,300);
+        } else {
+          text("-1x",450,500);
+        };
+        textSize(20);
+        text("(You have "+rarities[ownedRarities[downgraderScroll+i]][3]+")",550,325+200*i);
+      };
+    };
+  };
+
+  function autoRoll(){
+    if (upgrades[3][0][0]>0&&framesSinceAutoRoll>=100/upgrades[3][0][3]){
+      framesSinceAutoRoll=0;
+      roll(upgrades[3][1][3]*luck,maxBulk,0);
+    }
+  }
 
   draw = function() {
     createCanvas(window.innerWidth-20,window.innerHeight-20);
@@ -421,13 +533,10 @@ function setup() {
       text("Rarity: "+currentRarity,650,250);
       textSize(2*displaySize);
       fill(255,255,255);
-      //text(String(currentRollLuck),650,300);
       displayInventory();
-      displayUpgrades();
       displayRollButton();
       displayCooldownBar();
-      displayScrollButtons();
-      updateSmoothScrolling();
+      displayCurrentLuck();
     }else if(menu==-1){
       fill(255,255,255);
       noStroke();
@@ -444,7 +553,7 @@ function setup() {
       textSize(100);
       text("Records:",675,100);
       textSize(50);
-      text("Rarest roll: 275K (Prestige283)",675,150);
+      text("Rarest roll: 1.25M (The_Grinding_Master)",675,150);
     }else if(menu==1){
       strokeWeight(5);
       if (luck>=unlockReq[unlocks][1]){
@@ -462,14 +571,31 @@ function setup() {
       textSize(25);
       text(unlockReq[unlocks][0],675,350);
       text("Requires "+unlockReq[unlocks][1]+"x luck",675,450);
+    }else if(menu==2){
+      fill(255,255,255);
+      textAlign("center");
+      textSize(50);
+      text("Rarity Downgrader",675,50);
+      displayDowngrader();
+    }else if(menu==3){
+      fill(255,255,255);
+      textAlign("center");
+      textSize(50);
+      text("Automation",675,50);
     };
+    updateSmoothScrolling();
+    displayUpgrades();
+    displayScrollButtons();
     displayMenuButtons();
     updateOwnedRarities();
     updateCostsAndEffects();
     updateInventoryLuck();
+    autoRoll();
     luck=inventoryLuckBoost;
-    maxBulk=upgrades[1][3];
+    maxBulk=upgrades[0][1][3];
     framesSinceRoll+=1;
+    framesSinceClick+=1;
+    framesSinceAutoRoll+=1;
     time+=0.01;
   };
-};
+}
