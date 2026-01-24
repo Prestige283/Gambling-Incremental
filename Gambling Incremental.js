@@ -591,7 +591,7 @@ function setup() {
     updateCostsAndEffects();
     updateInventoryLuck();
     autoRoll();
-    luck=inventoryLuckBoost*2;
+    luck=inventoryLuckBoost;
     maxBulk=upgrades[0][1][3];
     framesSinceRoll+=1;
     framesSinceClick+=1;
