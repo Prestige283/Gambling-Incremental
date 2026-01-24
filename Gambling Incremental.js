@@ -177,7 +177,7 @@ function setup() {
 
   function roll(rollLuck,rollBulk,manual){
     if (framesSinceRoll>=rollCooldown){
-      if (manual=1){
+      if (manual==1){
         rolls+=1;
         framesSinceRoll=0;
       };
@@ -591,7 +591,7 @@ function setup() {
     updateCostsAndEffects();
     updateInventoryLuck();
     autoRoll();
-    luck=inventoryLuckBoost;
+    luck=inventoryLuckBoost*2;
     maxBulk=upgrades[0][1][3];
     framesSinceRoll+=1;
     framesSinceClick+=1;
