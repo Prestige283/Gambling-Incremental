@@ -43,6 +43,8 @@ function setup() {
   ownedRarities=[];
   framesSinceClick=0;
   framesSinceAutoRoll=0;
+  newestUniqueRarity=0;
+  newestUniqueRaritySize=0;
   // [name,rarity,color,amount]
   rarities=
     [["Common",1,[128,128,128],0],
@@ -51,9 +53,9 @@ function setup() {
     ["Epic",27,[100,40,200],0],
     ["Legendary",81,[255,150,0],0],
     ["Mythical",243,[230,20,20],0],
-    ["Infinity",729,[255,200,0],0],
-    ["Eternity",2187,[64,0,128],0],
-    ["Reality",6561,[0,100,0],0],
+    ["Super",729,[0,255,255],0],
+    ["Ascension",2187,[255,255,100],0],
+    ["Universal",6561,[150,64,255],0],
     ["Absolute",19683,[255,0,128],0],
 
     ["Antimatter",12000,[192,255,0],0],
@@ -137,7 +139,21 @@ function setup() {
     ["The Paper Pilot",350000,[0,250,120],0],
     ["Hevipelle",625000,[250,230,0],0],
     ["Acamaeda",1750000,[140,100,0],0],
-    ["Jacorb",5000000,[128,0,255],0]
+    ["Jacorb",5000000,[128,0,255],0],
+
+    ["Spaceon",12000000,[50,100,200],0],
+    ["Solaris",13000000,[180,120,50],0],
+    ["Infinity",15000000,[150,80,0],0],
+    ["Eternity",14000000,[64,0,150],0],
+    ["Reality",10000000,[30,150,30],0],
+    ["Drigganiz",11000000,[110,0,110],0],
+
+    ["Flamis",50000000,[255,128,0],0],
+    ["Cranius",52000000,[255,0,255],0],
+    ["Spectra",60000000,[192,128,255],0],
+    ["Aqualon",58000000,[128,255,255],0],
+    ["Nullum",56000000,[100,100,100],0],
+    ["Quantron",54000000,[255,180,180],0]
     ];
   
   function updateOwnedRarities(){
@@ -189,6 +205,10 @@ function setup() {
       for (var i=0;i<rarities.length;i++){
         if (0<tempCurrentRollLuck && tempCurrentRollLuck<Math.pow(rarities[i][1],(-1/rollLuck))){
           currentRoll=i;
+          if (rarities[i][3]==0){
+            newestUniqueRaritySize=39.999;
+            newestUniqueRarity=currentRoll;
+          };
           rarities[i][3]+=currentBulk;
         };
         tempCurrentRollLuck-=Math.pow(rarities[i][1],(-1/rollLuck));
@@ -443,6 +463,10 @@ function setup() {
   function updateSmoothScrolling(){
     upgradeScroll=(9*upgradeScroll+projectedUpgradeScroll)/10;
     inventoryScroll=(9*inventoryScroll+projectedInventoryScroll)/10;
+    newestUniqueRaritySize=40-(40-newestUniqueRaritySize)*1.03;
+    if (newestUniqueRaritySize<0){
+      newestUniqueRaritySize=0;
+    };
   };
 
   function displayCooldownBar(){
@@ -511,6 +535,16 @@ function setup() {
     }
   }
 
+  
+  function displayNewestUniqueRarity(){
+    fill(255,255,255);
+    textSize(40);
+    textAlign("center");
+    text("Newest Unique Rarity:",650,625)
+    fill(rarities[newestUniqueRarity][2][0],rarities[newestUniqueRarity][2][1],rarities[newestUniqueRarity][2][2]);
+    textSize(newestUniqueRaritySize+0.01);
+    text(rarities[newestUniqueRarity][0],650,675);
+  }
   draw = function() {
     createCanvas(window.innerWidth-20,window.innerHeight-20);
     scale(min(window.innerWidth/1350,window.innerHeight/800));
@@ -537,6 +571,7 @@ function setup() {
       displayRollButton();
       displayCooldownBar();
       displayCurrentLuck();
+      displayNewestUniqueRarity();
     }else if(menu==-1){
       fill(255,255,255);
       noStroke();
