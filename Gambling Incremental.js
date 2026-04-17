@@ -438,6 +438,16 @@ function setup() {
     return temp
   };
 
+  function canSafePurchase(upgradeNum){
+    temp=true
+    for (var i=0;i<upgrades[menu][upgradeNum][4].length;i++){
+      if (rarities[upgrades[menu][upgradeNum][4][i][0]][3]<=upgrades[menu][upgradeNum][4][i][1]){
+        temp=false
+      };
+    };
+    return temp
+  };
+
   function displayRollButton(){
     fill(0,0,0);
     strokeWeight(5);
@@ -537,7 +547,11 @@ function setup() {
         if (220*(i-upgradeScroll)<660 && 220*(i-upgradeScroll)>-220){
           fill(0,0,0);
           if (canPurchase(i)){
-            stroke(0,255,0);
+            if (canSafePurchase(i)){
+              stroke(0,255,0);
+            }else{
+              stroke(255,255,0);
+            }
           }else{
             stroke(255,0,0);
           }
